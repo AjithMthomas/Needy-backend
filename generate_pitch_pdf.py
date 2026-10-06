@@ -28,15 +28,16 @@ def build_pdf():
 
     styles = getSampleStyleSheet()
 
-    # Custom styles
-    primary_color = colors.HexColor("#0F172A")
-    secondary_color = colors.HexColor("#0EA5E9")
-    accent_mint = colors.HexColor("#10B981")
-    text_dark = colors.HexColor("#1E293B")
-    bg_light = colors.HexColor("#F8FAFC")
-    card_bg = colors.HexColor("#F1F5F9")
-    border_color = colors.HexColor("#E2E8F0")
+    # Color Palette
+    primary_color = colors.HexColor("#0F172A")     # Slate 900
+    secondary_color = colors.HexColor("#0EA5E9")   # Sky 500
+    accent_mint = colors.HexColor("#10B981")       # Emerald 500
+    accent_rose = colors.HexColor("#F43F5E")       # Rose 500 (Emergency)
+    text_dark = colors.HexColor("#1E293B")         # Slate 800
+    bg_card = colors.HexColor("#F8FAFC")           # Slate 50
+    border_color = colors.HexColor("#E2E8F0")      # Slate 200
 
+    # Custom Typography Styles
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Title'],
@@ -45,28 +46,28 @@ def build_pdf():
         leading=28,
         textColor=primary_color,
         alignment=0,
-        spaceAfter=6
+        spaceAfter=4
     )
 
     subtitle_style = ParagraphStyle(
         'DocSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=12,
-        leading=16,
+        fontSize=11.5,
+        leading=15,
         textColor=secondary_color,
-        spaceAfter=15
+        spaceAfter=12
     )
 
     h1_style = ParagraphStyle(
         'H1Style',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
-        fontSize=15,
-        leading=19,
+        fontSize=14,
+        leading=18,
         textColor=primary_color,
-        spaceBefore=14,
-        spaceAfter=8,
+        spaceBefore=12,
+        spaceAfter=6,
         keepWithNext=True
     )
 
@@ -74,11 +75,11 @@ def build_pdf():
         'H2Style',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=12,
-        leading=16,
+        fontSize=11,
+        leading=14,
         textColor=secondary_color,
-        spaceBefore=10,
-        spaceAfter=6,
+        spaceBefore=8,
+        spaceAfter=4,
         keepWithNext=True
     )
 
@@ -86,10 +87,10 @@ def build_pdf():
         'BodyDark',
         parent=styles['BodyText'],
         fontName='Helvetica',
-        fontSize=9.5,
-        leading=13.5,
+        fontSize=9,
+        leading=13,
         textColor=text_dark,
-        spaceAfter=6
+        spaceAfter=5
     )
 
     body_bold = ParagraphStyle(
@@ -98,21 +99,12 @@ def build_pdf():
         fontName='Helvetica-Bold'
     )
 
-    callout_style = ParagraphStyle(
-        'CalloutText',
-        parent=styles['Normal'],
-        fontName='Helvetica-Oblique',
-        fontSize=9.5,
-        leading=13.5,
-        textColor=colors.HexColor("#0369A1")
-    )
-
     table_header_style = ParagraphStyle(
         'TableHeader',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=9.5,
-        leading=12,
+        fontSize=9,
+        leading=11,
         textColor=colors.white,
         alignment=1
     )
@@ -134,210 +126,245 @@ def build_pdf():
 
     story = []
 
-    # Title Banner
-    story.append(Paragraph("<b>needy</b> — Influencer Pitch & Partnership Deck", title_style))
-    story.append(Paragraph("Hyperlocal Micro-Marketplace & Social Utility App | 218K Audience Partnership Playbook", subtitle_style))
-    story.append(HRFlowable(width="100%", thickness=2, color=secondary_color, spaceAfter=12))
+    # Document Header
+    story.append(Paragraph("<b>needy</b> — Complete Pitch Deck & Influencer Playbook", title_style))
+    story.append(Paragraph("Hyperlocal Micro-Marketplace & Community Utility Platform | INR (₹) Revenue Breakdown", subtitle_style))
+    story.append(HRFlowable(width="100%", thickness=2, color=secondary_color, spaceAfter=10))
 
-    # Executive Summary & Vision
-    story.append(Paragraph("1. Executive Summary & Vision", h1_style))
+    # 1. Executive Vision & Problem Statement
+    story.append(Paragraph("1. Executive Vision & Core Value Proposition", h1_style))
     story.append(Paragraph(
-        "<b>needy</b> is a safety-first hyperlocal micro-marketplace connecting people who have spare time with nearby individuals or local small businesses. "
-        "It solves a universal problem: <i>People are bored or need quick help, while others nearby have spare time or specific skills.</i>",
+        "<b>needy</b> is a safety-first hyperlocal micro-marketplace connecting people who have spare time with nearby individuals, students, or local businesses who have specific needs. "
+        "It solves everyday local friction: <i>'I need help moving furniture in 30 mins'</i>, <i>'Looking for a girl companion for evening tea'</i>, <i>'Local cafe needs a 3-hour cashier'</i>, or <i>'Emergency help needed nearby'</i>.",
         body_style
     ))
     story.append(Paragraph(
-        "By partnering with an influencer with <b>218,000 followers</b>, we unlock instant geographic density and community trust in a target pilot zone (e.g. Madiwala / Koramangala, Bengaluru). "
-        "A single post or reel converting just <b>2% to 5% of followers</b> creates a thriving ecosystem of 4,000 - 10,000 active users instantly.",
+        "<b>The 218K Influencer Advantage:</b> Hyperlocal apps thrive on <i>geographic density</i>. "
+        "By launching with a single partner influencer (218,000 followers), converting just 2% to 5% of followers creates an instant active ecosystem of <b>4,000 to 10,000 active users</b> in a single city hub (e.g. Madiwala / Koramangala, Bengaluru).",
         body_style
     ))
 
-    # Core Value Pillars Table
-    pillar_data = [
-        [Paragraph("Feature / Pillar", table_header_style), Paragraph("What It Does", table_header_style), Paragraph("Why Influencer Audience Will Love It", table_header_style)],
+    story.append(Spacer(1, 6))
+
+    # 2. Highlighted 4 Main Specialized Options
+    story.append(Paragraph("2. The Four Main Core App Hubs (Key Pillars)", h1_style))
+    story.append(Paragraph(
+        "needy is structured around 4 major dedicated activity hubs designed for high-frequency daily utility:",
+        body_style
+    ))
+
+    main_hubs_data = [
         [
-            Paragraph("<b>Micro-Tasks & Errands</b>", table_cell_bold),
-            Paragraph("Quick 15-60 min errands (bike wash, document pickup, grocery run).", table_cell_style),
-            Paragraph("Students & young pros earn extra income in spare time.", table_cell_style)
+            Paragraph("Core Option / Hub", table_header_style),
+            Paragraph("Purpose & Features", table_header_style),
+            Paragraph("How People Use It (Use Cases)", table_header_style)
         ],
         [
-            Paragraph("<b>Time Together & Company</b>", table_cell_bold),
-            Paragraph("Tea shop chats, gym buddies, walking partners, museum visits.", table_cell_style),
-            Paragraph("Combats loneliness; genuine casual social connection without dating app awkwardness.", table_cell_style)
+            Paragraph("🚨 <b>Emergency (SOS Hub)</b>", table_cell_bold),
+            Paragraph("Immediate community alert, live GPS dispatch, 1-tap SOS trigger, trusted contact broadcast.", table_cell_style),
+            Paragraph("Late-night safety walk, sudden medical errand, vehicle breakdown, flat tire help.", table_cell_style)
         ],
         [
-            Paragraph("<b>Live Auctions Hub</b>", table_cell_bold),
-            Paragraph("Time-limited auctions for gadgets, consultation, or exclusive meetups.", table_cell_style),
-            Paragraph("Influencer can auction exclusive 1-on-1 tea walks or fan meetups!", table_cell_style)
+            Paragraph("💼 <b>Gigs & Hiring Hub</b>", table_cell_bold),
+            Paragraph("Micro-gigs & shopkeeper hiring. Fast 2-4 hour temporary job matches.", table_cell_style),
+            Paragraph("Local shops hire event helpers, flyer distributors, cashiers. Students earn quick daily cash.", table_cell_style)
         ],
         [
-            Paragraph("<b>Safety & Trust Rules</b>", table_cell_bold),
-            Paragraph("OTP email verification, Girls-Only / Boys-Only filters, Guardian Badges.", table_cell_style),
-            Paragraph("100% peace of mind for female followers and safety-conscious users.", table_cell_style)
+            Paragraph("🏠 <b>Room Finding Hub</b>", table_cell_bold),
+            Paragraph("Zero-brokerage room hunting, flatmate finder, PG vacancies, temporary stay matching.", table_cell_style),
+            Paragraph("Newcomers find flatmates, vacant PG beds, or emergency weekend stays without broker fees.", table_cell_style)
+        ],
+        [
+            Paragraph("🚗 <b>Make Trip & Travel Hub</b>", table_cell_bold),
+            Paragraph("Carpooling, cab split, weekend road trip team creation, getaway expense sharing.", table_cell_style),
+            Paragraph("Splitting airport cabs, organizing Nandi Hills sunrise bike rides, weekend trips.", table_cell_style)
         ]
     ]
 
-    t_pillars = Table(pillar_data, colWidths=[1.5*inch, 2.8*inch, 2.7*inch])
-    t_pillars.setStyle(TableStyle([
+    t_hubs = Table(main_hubs_data, colWidths=[1.6*inch, 2.8*inch, 2.6*inch])
+    t_hubs.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), primary_color),
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, card_bg]),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, bg_card]),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
     ]))
-    story.append(t_pillars)
-    story.append(Spacer(1, 10))
+    story.append(t_hubs)
+    story.append(Spacer(1, 8))
 
-    # Step-by-Step Live Demo Script
-    story.append(Paragraph("2. Live App Demo Walkthrough (What to Show Him)", h1_style))
+    # 3. All Income Generating Methods
+    story.append(Paragraph("3. Complete Revenue & Monetization Model (All Streams in INR ₹)", h1_style))
     story.append(Paragraph(
-        "Hand him your phone running the app at <b>http://127.0.0.1:8090/</b> or open it live on screen. Follow this 5-step demo script:",
+        "needy monetizes every level of local interaction through 5 distinct revenue streams:",
         body_style
     ))
 
-    demo_steps = [
-        "<b>Step 1: Cold Start Splash (Full-Screen Lottie Animation)</b> — Open the app. Point out the smooth vector full-screen <i>NEEDY</i> animation that creates an instant premium brand impression.",
-        "<b>Step 2: Hyperlocal Discover Feed</b> — Show the 6 activity categories (Errands, Company, Food, Sports, Study, Culture) and the 3 Exchange Modes (<i>Paid, Free, Treat</i>).",
-        "<b>Step 3: Bored Radar</b> — Open the live neighborhood pulse map showing nearby active zones and real-time community drift.",
-        "<b>Step 4: Live Auctions Hub</b> — Show the Live Auctions screen with real-time bidding ticker and 'Buy It Now' instant purchase.",
-        "<b>Step 5: Trust & Guardian Safety</b> — Show the safety center, female-only post filter, and verified badge system."
-    ]
-    for step in demo_steps:
-        story.append(Paragraph(f"• {step}", body_style))
-
-    story.append(Spacer(1, 10))
-
-    # Financials & Earnings Calculation
-    story.append(Paragraph("3. Revenue Model & Earnings Calculations", h1_style))
-    story.append(Paragraph(
-        "How <b>needy</b> generates revenue:<br/>"
-        "1. <b>5% Platform Commission Fee</b> on all paid micro-gigs and live auctions.<br/>"
-        "2. <b>Merchant Partner Perks</b> ($20 - $50 / month per local cafe, gym, or restaurant listing).<br/>"
-        "3. <b>Featured Post & Karma Microtransactions</b>.",
-        body_style
-    ))
-
-    # Earnings Table
-    earnings_data = [
+    monetization_data = [
         [
-            Paragraph("Activity Volume / Month", table_header_style),
-            Paragraph("Average Activity Value", table_header_style),
-            Paragraph("Total Monthly Volume (GMV)", table_header_style),
-            Paragraph("5% Commission Income", table_header_style),
-            Paragraph("Merchant Perks & Ads", table_header_style),
-            Paragraph("Total Monthly Revenue", table_header_style)
+            Paragraph("Income Stream", table_header_style),
+            Paragraph("Mechanism & Pricing Structure", table_header_style),
+            Paragraph("Revenue Potential (INR ₹)", table_header_style)
+        ],
+        [
+            Paragraph("<b>1. Platform Transaction Commission</b>", table_cell_bold),
+            Paragraph("5% fee charged on all completed paid tasks, micro-gigs, room bookings, and cab splits.", table_cell_style),
+            Paragraph("<b>₹17,500</b> / 1k tasks<br/><b>₹1,75,000</b> / 10k tasks", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>2. Shop & Business Gigs Subscription</b>", table_cell_bold),
+            Paragraph("Local businesses & shopkeepers pay ₹499 - ₹1,999/month for unlimited urgent gig posts & top placement.", table_cell_style),
+            Paragraph("<b>₹50,000</b> / month<br/>(100 subscribed shops)", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>3. Live Auctions Platform Commission</b>", table_cell_bold),
+            Paragraph("5% take rate on live auctions (gadgets, consultation, exclusive influencer meetups/tea walks).", table_cell_style),
+            Paragraph("<b>₹25,000 - ₹80,000</b> / month", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>4. Merchant Partner Perks Sponsorship</b>", table_cell_bold),
+            Paragraph("Local cafes, gyms & restaurants pay ₹1,500 - ₹5,000/month to feature exclusive discounts for needy members.", table_cell_style),
+            Paragraph("<b>₹45,000 - ₹1,500,00</b> / month", table_cell_bold)
+        ],
+        [
+            Paragraph("<b>5. Featured Post & Karma Micro-transactions</b>", table_cell_bold),
+            Paragraph("Users pay ₹49 - ₹199 to feature their room requirement, emergency request, or profile at the top of feed.", table_cell_style),
+            Paragraph("<b>₹20,000 - ₹60,000</b> / month", table_cell_bold)
+        ]
+    ]
+
+    t_money = Table(monetization_data, colWidths=[1.8*inch, 3.4*inch, 1.8*inch])
+    t_money.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), secondary_color),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, border_color),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, bg_card]),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(t_money)
+    story.append(Spacer(1, 8))
+
+    # 4. Financial Calculations Grid (INR)
+    story.append(Paragraph("4. Concrete Financial Projections (All Amounts in INR ₹)", h1_style))
+    
+    financial_grid_data = [
+        [
+            Paragraph("Monthly Activity Volume", table_header_style),
+            Paragraph("Avg. Activity Value", table_header_style),
+            Paragraph("Monthly GMV (Gross Volume)", table_header_style),
+            Paragraph("Commission Income (5%)", table_header_style),
+            Paragraph("Perks, Ads & Subscriptions", table_header_style),
+            Paragraph("Net Monthly Revenue (INR)", table_header_style)
         ],
         [
             Paragraph("<b>1,000 Activities</b><br/>(Initial Pilot Phase)", table_cell_style),
-            Paragraph("₹350 ($4.20)", table_cell_style),
-            Paragraph("₹3,50,000 ($4,200)", table_cell_style),
-            Paragraph("₹17,500 ($210)", table_cell_style),
-            Paragraph("₹15,000 ($180)", table_cell_style),
-            Paragraph("<b>₹32,500 / month</b><br/>($390/mo)", table_cell_bold)
+            Paragraph("₹350", table_cell_style),
+            Paragraph("₹3,50,000", table_cell_style),
+            Paragraph("₹17,500", table_cell_style),
+            Paragraph("₹15,000", table_cell_style),
+            Paragraph("<b>₹32,500 / month</b>", table_cell_bold)
         ],
         [
-            Paragraph("<b>10,000 Activities</b><br/>(Influencer Launch - 5% Conversion)", table_cell_style),
-            Paragraph("₹350 ($4.20)", table_cell_style),
-            Paragraph("₹35,00,000 ($42,000)", table_cell_style),
-            Paragraph("₹1,75,000 ($2,100)", table_cell_style),
-            Paragraph("₹75,000 ($900)", table_cell_style),
+            Paragraph("<b>10,000 Activities</b><br/>(Influencer Cohort Launch)", table_cell_style),
+            Paragraph("₹350", table_cell_style),
+            Paragraph("₹35,00,000", table_cell_style),
+            Paragraph("₹1,75,000", table_cell_style),
+            Paragraph("<b>₹75,000</b>", table_cell_style),
             Paragraph("<b>₹2,50,000 / month</b><br/>(₹30 Lakhs / year)", table_cell_bold)
         ],
         [
             Paragraph("<b>50,000 Activities</b><br/>(Multi-Zone City Scale)", table_cell_style),
-            Paragraph("₹350 ($4.20)", table_cell_style),
-            Paragraph("₹1,75,00,000 ($210,000)", table_cell_style),
-            Paragraph("₹8,75,000 ($10,500)", table_cell_style),
-            Paragraph("₹3,75,000 ($4,500)", table_cell_style),
+            Paragraph("₹350", table_cell_style),
+            Paragraph("₹1,75,00,000", table_cell_style),
+            Paragraph("₹8,75,000", table_cell_style),
+            Paragraph("₹3,75,000", table_cell_style),
             Paragraph("<b>₹12,50,000 / month</b><br/>(₹1.5 Crore / year)", table_cell_bold)
         ]
     ]
 
-    t_earnings = Table(earnings_data, colWidths=[1.3*inch, 1.0*inch, 1.2*inch, 1.1*inch, 1.1*inch, 1.3*inch])
-    t_earnings.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), secondary_color),
+    t_grid = Table(financial_grid_data, colWidths=[1.3*inch, 1.0*inch, 1.2*inch, 1.1*inch, 1.1*inch, 1.3*inch])
+    t_grid.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, card_bg]),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, bg_card]),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
     ]))
-    story.append(t_earnings)
-    story.append(Spacer(1, 10))
+    story.append(t_grid)
+    story.append(Spacer(1, 8))
 
-    # Development & Cloud Hosting Cost Breakdown
-    story.append(Paragraph("4. Zero-Cost Development & Infrastructure Scaling", h1_style))
-    story.append(Paragraph(
-        "One of the strongest arguments for this project is <b>lean capital efficiency</b>. "
-        "The software architecture has been built with zero upfront infrastructure cost:",
-        body_style
-    ))
-
-    cost_data = [
-        [Paragraph("Growth Stage", table_header_style), Paragraph("Monthly User Traffic", table_header_style), Paragraph("Infrastructure Cost", table_header_style), Paragraph("Platform Profit Margin", table_header_style)],
+    # 5. Full Feature Catalog & How People Use Needy
+    story.append(Paragraph("5. Complete Feature Catalog & How People Use Needy", h1_style))
+    
+    features_data = [
+        [Paragraph("Feature / Screen", table_header_style), Paragraph("Description", table_header_style), Paragraph("How Users Interact With It", table_header_style)],
         [
-            Paragraph("<b>Phase 1: Pilot Launch</b>", table_cell_bold),
-            Paragraph("0 - 5,000 Active Users", table_cell_style),
-            Paragraph("<b>₹0 / Month ($0)</b><br/>Render Free Tier + Neon Postgres Free", table_cell_style),
-            Paragraph("<b>100% Margin</b>", table_cell_bold)
+            Paragraph("<b>Hyperlocal Discover Feed</b>", table_cell_bold),
+            Paragraph("Real-time feed sorted by distance (0-5 km) with 6 categories & 3 Exchange Modes.", table_cell_style),
+            Paragraph("Users browse nearby posts, filter by free/paid/treat, and apply in 1 tap.", table_cell_style)
         ],
         [
-            Paragraph("<b>Phase 2: Initial Scale</b>", table_cell_bold),
-            Paragraph("5,000 - 25,000 Active Users", table_cell_style),
-            Paragraph("<b>₹1,200 - ₹2,500 / Month</b> ($15-$30/mo)", table_cell_style),
-            Paragraph("<b>98.5% Margin</b>", table_cell_bold)
+            Paragraph("<b>Bored Radar Map</b>", table_cell_bold),
+            Paragraph("Ambient neighborhood pulse map displaying active users & drift counts.", table_cell_style),
+            Paragraph("Users see who is free or bored around them in real time without privacy leak.", table_cell_style)
         ],
         [
-            Paragraph("<b>Phase 3: High Scale</b>", table_cell_bold),
-            Paragraph("25,000 - 100,000 Active Users", table_cell_style),
-            Paragraph("<b>₹5,000 - ₹12,000 / Month</b> ($60-$150/mo)", table_cell_style),
-            Paragraph("<b>96% Margin</b>", table_cell_bold)
+            Paragraph("<b>Live Auctions Hub</b>", table_cell_bold),
+            Paragraph("Real-time bidding ticker for gadgets, consultation, and exclusive influencer meetups.", table_cell_style),
+            Paragraph("Place live bids or click 'Buy It Now' for instant purchase.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>Community Board & Karma</b>", table_cell_bold),
+            Paragraph("Idea upvoting system & Karma rewards ledger for helping others.", table_cell_style),
+            Paragraph("Users gain Karma points for completing tasks & redeem partner perk discounts.", table_cell_style)
+        ],
+        [
+            Paragraph("<b>Trust & Safety Rules</b>", table_cell_bold),
+            Paragraph("OTP authentication, Female-Only / Male-Only post filters, Guardian badges.", table_cell_style),
+            Paragraph("Women post company requests with 100% peace of mind via female-only filter.", table_cell_style)
         ]
     ]
 
-    t_cost = Table(cost_data, colWidths=[1.5*inch, 2.0*inch, 2.3*inch, 1.2*inch])
-    t_cost.setStyle(TableStyle([
+    t_feat = Table(features_data, colWidths=[1.5*inch, 2.7*inch, 2.8*inch])
+    t_feat.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), primary_color),
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, border_color),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, card_bg]),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, bg_card]),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
     ]))
-    story.append(t_cost)
-    story.append(Spacer(1, 10))
+    story.append(t_feat)
+    story.append(Spacer(1, 8))
 
-    # Influencer Offer & Synergy
-    story.append(Paragraph("5. What's in it for the Influencer (The Offer)", h1_style))
+    # 6. Zero-Cost Development & Cloud Scaling Strategy
+    story.append(Paragraph("6. Zero-Cost Infrastructure & Scaling Roadmap", h1_style))
     story.append(Paragraph(
-        "With <b>218,000 followers</b>, the influencer holds the key to user acquisition. Offer him a compelling co-founding partnership:",
+        "Built with Flutter (Android/iOS/Web) and Django 5.2 LTS + PostgreSQL.<br/>"
+        "• <b>Phase 1 (Pilot Launch)</b>: <b>₹0 / Month ($0)</b> operating cost on Render Free Tier + Neon PostgreSQL.<br/>"
+        "• <b>Phase 2 (5k - 25k Users)</b>: <b>₹1,200 - ₹2,500 / Month</b> for database & container scaling.<br/>"
+        "• <b>Profit Margin</b>: Remains above <b>96% - 98%</b> because server cost is negligible compared to transaction fees.",
         body_style
     ))
+
+    story.append(Spacer(1, 8))
+
+    # 7. Influencer Partnership Offer & Meeting Guidelines
+    story.append(Paragraph("7. Influencer Co-Founding Offer & Meeting Checklist", h1_style))
     offers = [
-        "<b>Co-Founder / Equity Partner (15% - 25% Stake)</b>: Share true upside in a scalable tech business rather than a one-off paid promotion.",
-        "<b>Revenue Share</b>: 30% of all platform commission fees generated by users joining via his exclusive referral link/code.",
-        "<b>Exclusive Fan Monetization</b>: He can host exclusive live auctions on Needy (e.g. <i>'Tea Walk with Me'</i>, <i>'1-on-1 Career Consultation'</i>) where 100% of proceeds go to him or a charity.",
-        "<b>Verified Badge & Featured Ambassador Status</b>: Official lead ambassador presence across the app."
+        "<b>Co-Founding Equity Stake (15% - 25%)</b>: Partner with him as a co-founder to align long-term incentives.",
+        "<b>30% Revenue Share on Referral Cohort</b>: Direct commission on every paid transaction originating from his referral link.",
+        "<b>Exclusive Influencer Live Auctions</b>: Host exclusive fan meetups, tea walks, or 1-on-1 chats on Needy (100% proceeds to him).",
+        "<b>Demonstrate Working App</b>: Open <b>http://127.0.0.1:8090/</b> live during the meeting to show 100% finished code."
     ]
     for o in offers:
         story.append(Paragraph(f"✔ {o}", body_style))
-
-    story.append(Spacer(1, 10))
-
-    # Critical Things to Take Care Of During the Meeting
-    story.append(Paragraph("6. Critical Things to Take Care Of During the Meeting", h1_style))
-    warnings = [
-        "<b>1. Don't Pitch It As a Dating App</b>: Emphasize that Needy is for micro-tasks, errands, community activities, and tea walks. This keeps the audience quality high and safe.",
-        "<b>2. Highlight Female Safety First</b>: Show the <i>Girls-Only filter</i> and <i>Guardian badges</i>. Influencers care deeply about protecting their audience from spam/harassment.",
-        "<b>3. Focus on Hyperlocal Density</b>: Explain that we don't need 1 million global users to make money; 2,000 active users in 1 college hub or neighborhood creates full liquidity.",
-        "<b>4. Show Ready Code, Not Just Slides</b>: The biggest selling point is that <b>the app is 100% built and ready to deploy today</b>. There is zero technical delay."
-    ]
-    for w in warnings:
-        story.append(Paragraph(f"⚠️ {w}", body_style))
 
     doc.build(story)
 

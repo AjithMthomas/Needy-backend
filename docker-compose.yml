@@ -1,0 +1,35 @@
+# Local development stack: `docker compose up`
+# (Optional — plain SQLite + runserver also works with zero Docker.)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: needy
+      POSTGRES_PASSWORD: needy
+      POSTGRES_DB: needy
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U needy"]
+      interval: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      SECRET_KEY: local-dev-secret-key-not-for-production
+      DATABASE_URL: postgres://needy:needy@db:5432/needy
+      SEED_DEMO: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

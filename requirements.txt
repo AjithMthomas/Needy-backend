@@ -1,0 +1,15 @@
+# needy backend — runtime dependencies.
+# Ranges (not hard pins) so free-tier deploys pick up security patches.
+# Regenerate exact hashes for production with: pip-compile (pip-tools).
+
+Django>=5.2,<5.3                      # LTS — security fixes until Apr 2028
+djangorestframework>=3.16,<3.17       # REST toolkit
+djangorestframework-simplejwt>=5.5,<5.6
+django-cors-headers>=4.4,<5
+django-filter>=25.1,<26
+dj-database-url>=2.3,<3
+python-dotenv>=1.0,<2
+psycopg[binary]>=3.2,<4               # Postgres driver (dev uses SQLite)
+whitenoise>=6.8,<7                    # static files without a CDN
+gunicorn>=23,<24                      # prod WSGI server
+uvicorn[standard]>=0.30,<1            # prod ASGI server (async-ready)

@@ -1,0 +1,16 @@
+# See STANDARDS.md §7. Install once: `pre-commit install`
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff-check
+        args: [--fix, apps, config]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (business rules)
+        entry: ./.venv/Scripts/python.exe -m pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

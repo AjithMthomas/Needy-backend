@@ -1,0 +1,42 @@
+[project]
+name = "needy-backend"
+version = "0.1.0"
+description = "needy — hyperlocal micro-marketplace backend (Django 5.2 LTS + DRF)"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # bugbear
+    "UP",       # pyupgrade
+    "DJ",       # django-specific
+    "RUF",      # ruff-specific
+]
+ignore = [
+    "RUF012",  # DRF/Django mutable class attributes are the framework pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Settings modules use star-imports by design (Django convention).
+"config/settings/*" = ["F403", "F405"]
+# Seed data holds verbatim demo copy (long lines, en-dashes) — do not rewrap.
+"apps/core/management/commands/seed_demo.py" = ["E501", "RUF001"]
+# Standalone smoke script: one line per API call is the readable form.
+"smoke_test.py" = ["E501", "RUF010", "RUF100"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["apps"]
+addopts = "-q --tb=short"
+
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*", "*/admin.py"]

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import Member, OtpCode
@@ -46,7 +47,18 @@ def request_otp(email: str) -> OtpRequestResult:
 
     code = _new_code()
     OtpCode.objects.issue(email=email, member=member, code=code)
-    _send_code_email(email, code)
+    try:
+        _send_code_email(email, code)
+    except Exception as exc:
+        # Never leave a live code the user cannot receive: the screen would
+        # sit waiting for an email that never arrives (the old fail_silently
+        # behaviour made this look like success).
+        OtpCode.objects.filter(email=email, consumed=False).update(consumed=True)
+        from apps.core.exceptions import BusinessRuleError
+
+        raise BusinessRuleError(
+            "We couldn't send your sign-in code right now. Please try again in a minute."
+        ) from exc
     return OtpRequestResult(sent=True, cooldown_seconds=cooldown)
 
 
@@ -102,5 +114,39 @@ def _send_code_email(email: str, code: str) -> None:
         ),
         from_email=None,
         recipient_list=[email],
-        fail_silently=True,  # console backend in dev; never block signup on SMTP hiccups
+        # Raise on delivery failure: request_otp turns this into a clear
+        # message instead of a silent lockout.
+        fail_silently=False,
     )
+
+
+@transaction.atomic
+def delete_account(member: Member) -> None:
+    """Permanently delete/anonymize member account per Apple 5.1.1(v) & DPDP guidelines."""
+    from apps.posts.models import Application, Task
+
+    # 1. Clean up active device tokens
+    member.devices.all().delete()
+
+    # 2. Cancel open/active tasks
+    Task.objects.filter(
+        creator=member,
+        status__in=[Task.TaskStatus.ACTIVE, Task.TaskStatus.CONFIRMED],
+    ).update(status=Task.TaskStatus.CANCELLED)
+
+    # 3. Withdraw pending applications
+    Application.objects.filter(
+        member=member,
+        status=Application.ApplicationStatus.CHATTING,
+    ).update(status=Application.ApplicationStatus.WITHDRAWN)
+
+    # 4. Deactivate and anonymize personal information
+    member.is_active = False
+    member.email = f"deleted_{member.id}@needy.internal"
+    member.public_name = "Deleted Member"
+    member.photo_url = ""
+    member.bio = ""
+    member.safety_contact_name = ""
+    member.safety_contact_phone = ""
+    member.save()
+

@@ -1,0 +1,22 @@
+# Never ship these into an image.
+.env
+.env.*
+!.env.example
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.git/
+.gitignore
+htmlcov/
+.coverage
+*.log
+server.log
+tests/
+**/tests/

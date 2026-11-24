@@ -11,7 +11,6 @@ from the declared content type — never from the client-supplied filename.
 
 import uuid
 
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from rest_framework.permissions import IsAuthenticated
@@ -67,5 +66,9 @@ class UploadView(APIView):
             f"uploads/{uuid.uuid4().hex}.{ext}",
             ContentFile(f.read()),
         )
-        url = request.build_absolute_uri(f"{settings.MEDIA_URL}{saved}")
-        return Response({"url": url}, status=201)
+        # Ask the storage backend for the URL: on S3/R2 this is the public
+        # object URL (or a presigned one), never a DEBUG-only /media/ path.
+        url = default_storage.url(saved)
+        if url.startswith("http"):
+            return Response({"url": url}, status=201)
+        return Response({"url": request.build_absolute_uri(url)}, status=201)

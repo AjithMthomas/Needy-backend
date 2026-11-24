@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Member
+from apps.core.exceptions import BusinessRuleError
 from apps.moderation import services
 from apps.moderation.serializers import ReportCreateSerializer
 
@@ -36,19 +37,30 @@ class ReportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        report = services.file_report(
-            request.user,
-            task=task,
-            target_member=target_member,
-            reason=data["reason"],
-            details=data["details"],
-        )
+        try:
+            report = services.file_report(
+                request.user,
+                task=task,
+                target_member=target_member,
+                reason=data["reason"],
+                details=data["details"],
+            )
+        except BusinessRuleError as exc:
+            return Response(
+                {"detail": str(exc.detail), "code": exc.default_code},
+                status=exc.status_code,
+            )
+
+        quarantined = False
+        if task is not None:
+            task.refresh_from_db(fields=["quarantined"])
+            quarantined = task.quarantined
         return Response(
             {
                 "id": str(report.id),
                 "status": "received",
                 "message": "Our safety team will review your report within 24 hours.",
-                "quarantined": task is not None,
+                "quarantined": quarantined,
             },
             status=status.HTTP_201_CREATED,
         )

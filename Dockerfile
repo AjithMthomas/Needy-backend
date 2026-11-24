@@ -17,4 +17,5 @@ USER appuser
 
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "30"]
+# Cloud Run injects $PORT (default 8080); containers elsewhere fall back to 8000.
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 60"]

@@ -41,6 +41,11 @@ class MemberPublicSerializer(serializers.ModelSerializer):
         ]
 
     def get_badges(self, obj) -> list[str]:
+        # List endpoints prefetch badges_earned; the model property would
+        # otherwise issue one query per member.
+        prefetched = getattr(obj, "_prefetched_objects_cache", {}).get("badges_earned")
+        if prefetched is not None:
+            return [badge.badge for badge in prefetched]
         return obj.badge_codes
 
 

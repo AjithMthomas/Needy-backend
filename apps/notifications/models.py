@@ -26,3 +26,36 @@ class Notification(UUIDModel):
 
     def __str__(self) -> str:
         return f"{self.recipient_id}: {self.title}"
+
+
+class DeviceToken(UUIDModel):
+    """Device registration for remote push notifications (FCM / APNs)."""
+
+    class Platform(models.TextChoices):
+        ANDROID = "android", "Android"
+        IOS = "ios", "iOS"
+        WEB = "web", "Web"
+
+    member = models.ForeignKey(
+        Member,
+        on_delete=models.CASCADE,
+        related_name="devices",
+    )
+    token = models.CharField(max_length=255, unique=True, db_index=True)
+    platform = models.CharField(
+        max_length=10,
+        choices=Platform.choices,
+        default=Platform.ANDROID,
+    )
+    device_name = models.CharField(max_length=100, blank=True, default="")
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["member", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.member_id} ({self.platform}): {self.token[:12]}..."
+

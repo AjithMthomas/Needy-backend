@@ -1,5 +1,6 @@
 """posts views — thin controllers over services."""
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -39,6 +40,15 @@ class TaskDetailView(APIView):
 
     def get(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
+        from apps.moderation.services import blocked_ids_for
+
+        if task.creator_id in blocked_ids_for(request.user):
+            raise Http404
+        # A quarantined post is pending review: only its creator (and staff)
+        # may open it. Previously the feed hid it but the detail endpoint
+        # served it to anyone who had the id.
+        if task.quarantined and task.creator_id != request.user.id and not request.user.is_staff:
+            raise Http404
         return Response(TaskDetailSerializer(task, context={"request": request}).data)
 
 
@@ -209,13 +219,31 @@ class RateView(APIView):
             )
         stars = max(0.5, min(5.0, stars))
 
-        counterparty_id = (
+        # Only participants of a finished task may rate, once. Previously any
+        # member could rate any post they never joined, before it completed.
+        if task.status != Task.TaskStatus.COMPLETED:
+            return Response(
+                {"detail": "You can rate once the task is completed.", "code": "invalid"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        selected_ids = list(
             task.applications.filter(status=Application.ApplicationStatus.SELECTED)
             .values_list("member_id", flat=True)
-            .first()
         )
-        if counterparty_id is None:
-            counterparty_id = task.creator_id
+        is_creator = task.creator_id == request.user.id
+        if not is_creator and request.user.id not in selected_ids:
+            return Response(
+                {"detail": "Only participants can rate this task.", "code": "invalid"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if Rating.objects.filter(task=task, rater=request.user).exists():
+            return Response(
+                {"detail": "You already rated this task.", "code": "invalid"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        counterparty_id = selected_ids[0] if (is_creator and selected_ids) else task.creator_id
 
         if request.user.id == counterparty_id:
             return Response(

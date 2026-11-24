@@ -6,6 +6,7 @@ from config.settings.base import NUVRA
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]  # LAN phone testing (serve-phone.js on :8090).
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Dev keeps the fixed demo OTP 424242; prod generates random codes.
 NUVRA = {**NUVRA, "DEMO_MODE": True}

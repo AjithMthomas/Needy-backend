@@ -8,7 +8,7 @@ capacity, status transitions.
 from __future__ import annotations
 
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 
 from apps.accounts.models import Member
 from apps.core.exceptions import (
@@ -17,7 +17,7 @@ from apps.core.exceptions import (
     GenderRestrictedError,
 )
 from apps.notifications.services import notify
-from apps.posts.models import Application, Task
+from apps.posts.models import Application, Repost, SavedPost, Task
 
 
 # ---------------------------------------------------------------------------
@@ -33,6 +33,14 @@ def feed_queryset(member: Member, *, params):
         quarantined=False,
     ).select_related("creator")
 
+    # Blocks are mutual: if either side blocked the other, neither should
+    # appear in the feed. (The Block model existed but was never enforced.)
+    from apps.moderation.services import blocked_ids_for
+
+    blocked = blocked_ids_for(member)
+    if blocked:
+        qs = qs.exclude(creator_id__in=blocked)
+
     kind = params.get("kind")
     if kind:
         qs = qs.filter(kind=kind)
@@ -42,20 +50,20 @@ def feed_queryset(member: Member, *, params):
     max_km = 25.0 if source == "city" else _float(params.get("radius_km"), 3.0)
     qs = qs.filter(distance_km__lte=max_km)
 
-    types = params.getlist("types")
+    types = _csv(params, "types")
     if types:
         qs = qs.filter(type__in=types)
 
-    exchanges = params.getlist("exchanges")
+    exchanges = _csv(params, "exchanges")
     if exchanges:
         qs = qs.filter(exchange__in=exchanges)
 
     if params.get("free") == "1":
         qs = qs.filter(Q(exchange__in=["free", "treat"]) | Q(exchange="paid", reward_amount=0))
 
-    gender = params.get("gender")
-    if gender:
-        qs = qs.filter(gender_preference=gender)
+    genders = _csv(params, "gender")
+    if genders:
+        qs = qs.filter(gender_preference__in=genders)
 
     category = params.get("category")
     if category and category != "All":
@@ -71,6 +79,15 @@ def feed_queryset(member: Member, *, params):
     if params.get("mine") == "1":
         qs = Task.objects.filter(creator=member).exclude(status=Task.TaskStatus.CANCELLED)
 
+    # Per-row flags as EXISTS subqueries instead of one query per card. The
+    # serializer used to run three extra queries for every post in the page
+    # (~180 per 60-item feed).
+    qs = qs.annotate(
+        viewer_saved=Exists(SavedPost.objects.filter(task=OuterRef("pk"), member=member)),
+        viewer_reposted=Exists(Repost.objects.filter(task=OuterRef("pk"), member=member)),
+        viewer_applied=Exists(Application.objects.filter(task=OuterRef("pk"), member=member)),
+    )
+
     # Feed sort: soonest first (matches the app).
     return qs.order_by("scheduled_at")
 
@@ -82,6 +99,20 @@ def _float(value, default: float) -> float:
         return default
 
 
+def _csv(params, key: str) -> list[str]:
+    """Read a multi-value filter from either query-string style.
+
+    Accepts ``?types=a&types=b`` *and* ``?types=a,b``. The Flutter client
+    sends the comma-joined form, which ``getlist`` returns as one literal
+    value — filtering ``type__in=["a,b"]`` matched nothing, so any feed with
+    two or more filters active came back empty.
+    """
+    values: list[str] = []
+    for raw in params.getlist(key):
+        values.extend(part.strip() for part in str(raw).split(",") if part.strip())
+    return values
+
+
 # ---------------------------------------------------------------------------
 # Applications
 # ---------------------------------------------------------------------------
@@ -89,6 +120,10 @@ def _float(value, default: float) -> float:
 def apply_to_task(task: Task, member: Member, intro: str) -> Application:
     if task.creator_id == member.id:
         raise BusinessRuleError("You can't apply to your own post.")
+    from apps.moderation.services import blocked_ids_for
+
+    if task.creator_id in blocked_ids_for(member):
+        raise BusinessRuleError("You can't apply to this post.")
     if task.status != Task.TaskStatus.PUBLISHED:
         raise BusinessRuleError("This post is no longer open.")
     if Application.objects.filter(task=task, member=member).exists():
@@ -147,19 +182,26 @@ def select_applicant(application: Application, member: Member) -> Task:
     if application.status == Application.ApplicationStatus.WITHDRAWN:
         raise BusinessRuleError("That application was withdrawn.")
 
+    if application.status == Application.ApplicationStatus.SELECTED:
+        return task  # idempotent: tapping select twice is not an error
+    if task.selected_count() >= task.capacity:
+        raise CapacityFullError("This post already has enough people.")
+
     application.status = Application.ApplicationStatus.SELECTED
     application.save(update_fields=["status", "updated_at"])
 
-    # Everyone else in the room is declined (mock parity).
-    (
-        Application.objects.filter(task=task)
-        .exclude(pk=application.pk)
-        .exclude(status=Application.ApplicationStatus.WITHDRAWN)
-        .update(status=Application.ApplicationStatus.DECLINED)
-    )
-
-    task.status = Task.TaskStatus.CONFIRMED
-    task.save(update_fields=["status", "updated_at"])
+    # Only close the post once it is genuinely full. Declining every other
+    # applicant on the first selection made team/trip posts (capacity > 1)
+    # impossible to fill.
+    if task.selected_count() >= task.capacity:
+        (
+            Application.objects.filter(task=task)
+            .exclude(status=Application.ApplicationStatus.WITHDRAWN)
+            .exclude(status=Application.ApplicationStatus.SELECTED)
+            .update(status=Application.ApplicationStatus.DECLINED)
+        )
+        task.status = Task.TaskStatus.CONFIRMED
+        task.save(update_fields=["status", "updated_at"])
     notify(
         recipient=application.member,
         title="You were selected!",

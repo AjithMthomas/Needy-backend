@@ -56,8 +56,23 @@ class ConfigView(APIView):
         nuvra = settings.NUVRA
         return Response(
             {
+                # Kept for compatibility; build numbers below are what the
+                # client actually gates on (versions compare badly).
                 "min_app_version": "0.1.0",
-                "maintenance_mode": False,
+                "maintenance_mode": nuvra.get("MAINTENANCE_MODE", False),
+                "maintenance": {
+                    "active": nuvra.get("MAINTENANCE_MODE", False),
+                    "message": nuvra.get("MAINTENANCE_MESSAGE", ""),
+                },
+                "min_build": {
+                    "ios": nuvra.get("APP_MIN_IOS_BUILD", 1),
+                    "android": nuvra.get("APP_MIN_ANDROID_BUILD", 1),
+                },
+                "store_urls": {
+                    "ios": nuvra.get("APP_STORE_IOS_URL", ""),
+                    "android": nuvra.get("APP_STORE_ANDROID_URL", ""),
+                },
+                "feature_flags": nuvra.get("FEATURE_FLAGS", {}),
                 "service_fee_percent": nuvra["SERVICE_FEE_PERCENT"],
                 "categories": CATEGORY_NAMES,
                 "enums": {

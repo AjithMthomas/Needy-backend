@@ -214,6 +214,27 @@ show("GET /radar", c.get("/api/v1/radar", **auth))
 show("GET /notifications", c.get("/api/v1/notifications", **auth))
 show("GET /notifications/unread-count", c.get("/api/v1/notifications/unread-count", **auth))
 show(
+    "POST /devices/register",
+    c.post(
+        "/api/v1/devices/register",
+        {"token": "smoke_device_token_abc", "platform": "android", "device_name": "Smoke Device"},
+        content_type="application/json",
+        **auth,
+    ),
+    ["registered", "device_id"],
+)
+show(
+    "POST /devices/unregister",
+    c.post(
+        "/api/v1/devices/unregister",
+        {"token": "smoke_device_token_abc"},
+        content_type="application/json",
+        **auth,
+    ),
+    ["unregistered"],
+)
+
+show(
     "POST /reports",
     c.post(
         "/api/v1/reports",

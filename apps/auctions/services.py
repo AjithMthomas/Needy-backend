@@ -67,6 +67,41 @@ def buy_now(auction: AuctionItem, buyer: Member) -> AuctionItem:
     return locked
 
 
+@transaction.atomic
+def rent_item(auction: AuctionItem, renter: Member, duration_units: int = 1) -> AuctionItem:
+    """Rent an item (furniture, appliances, tools, gear) from the owner."""
+    if auction.seller_id == renter.id:
+        raise BusinessRuleError("You cannot rent your own item.")
+    if auction.listing_type != AuctionItem.ListingType.RENT:
+        raise BusinessRuleError("This item is not listed for rent.")
+    if auction.is_rented:
+        raise BusinessRuleError("This item has already been rented.")
+
+    locked = AuctionItem.objects.select_for_update().get(pk=auction.pk)
+    if locked.is_rented:
+        raise BusinessRuleError("This item was just rented by someone else.")
+
+    locked.renter = renter
+    locked.is_rented = True
+    locked.status = AuctionItem.Status.COMPLETED
+    locked.save(update_fields=["renter", "is_rented", "status", "updated_at"])
+
+    from apps.notifications.services import notify
+
+    unit_str = locked.rent_period
+    notify(
+        recipient=locked.seller,
+        title="Rental Request Confirmed!",
+        body=(
+            f"{renter.public_name} rented '{locked.title}' for "
+            f"{duration_units} {unit_str}(s). Coordinate pickup/delivery."
+        ),
+        target=f"auction:{locked.id}",
+    )
+    return locked
+
+
+
 def maybe_close(auction: AuctionItem) -> AuctionItem:
     """Lazy close on read; cheap (single UPDATE) once closed."""
     if auction.status == AuctionItem.Status.COMPLETED:

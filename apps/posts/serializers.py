@@ -72,13 +72,25 @@ class TaskListSerializer(serializers.ModelSerializer):
     def _member(self):
         return self.context["request"].user
 
+    # The feed annotates these three flags (see services.feed_queryset) so a
+    # page of posts costs one query instead of three per card. Detail views
+    # and admin still fall back to a direct lookup.
     def get_is_saved(self, obj) -> bool:
+        annotated = getattr(obj, "viewer_saved", None)
+        if annotated is not None:
+            return bool(annotated)
         return obj.saved_by.filter(member=self._member()).exists()
 
     def get_is_reposted(self, obj) -> bool:
+        annotated = getattr(obj, "viewer_reposted", None)
+        if annotated is not None:
+            return bool(annotated)
         return obj.reposted_by.filter(member=self._member()).exists()
 
     def get_has_applied(self, obj) -> bool:
+        annotated = getattr(obj, "viewer_applied", None)
+        if annotated is not None:
+            return bool(annotated)
         return obj.applications.filter(member=self._member()).exists()
 
 

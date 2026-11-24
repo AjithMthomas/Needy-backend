@@ -22,6 +22,16 @@ class AuctionItem(UUIDModel):
         COMPLETED = "completed", "Auction ended"
         CANCELLED = "cancelled", "Cancelled"
 
+    class ListingType(models.TextChoices):
+        AUCTION = "auction", "Bidding auction"
+        RENT = "rent", "For rent"
+        BUY_NOW = "buyNow", "Direct sale"
+
+    class RentPeriod(models.TextChoices):
+        DAY = "day", "Per day"
+        WEEK = "week", "Per week"
+        MONTH = "month", "Per month"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(Member, on_delete=models.CASCADE, related_name="auctions")
     title = models.CharField(max_length=140)
@@ -29,6 +39,27 @@ class AuctionItem(UUIDModel):
     category = models.CharField(max_length=60, default="Gadgets")
     image_url = models.URLField(blank=True, default="")
     video_url = models.URLField(blank=True, default="")
+
+    listing_type = models.CharField(
+        max_length=10,
+        choices=ListingType.choices,
+        default=ListingType.AUCTION,
+    )
+    rent_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    rent_period = models.CharField(
+        max_length=10,
+        choices=RentPeriod.choices,
+        default=RentPeriod.MONTH,
+    )
+    deposit_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    is_rented = models.BooleanField(default=False)
+    renter = models.ForeignKey(
+        Member,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="rentals",
+    )
 
     base_price = models.DecimalField(max_digits=12, decimal_places=2)
     current_bid = models.DecimalField(max_digits=12, decimal_places=2)
@@ -49,6 +80,7 @@ class AuctionItem(UUIDModel):
         on_delete=models.SET_NULL,
         related_name="auctions_won",
     )
+
 
     class Meta:
         ordering = ["-created_at"]

@@ -12,18 +12,25 @@ if not SECRET_KEY:
         'Generate one: python -c "import secrets; print(secrets.token_urlsafe(50))"'
     )
 
-ALLOWED_HOSTS = nuvra_env(
-    "ALLOWED_HOSTS",
-    default="",
-    cast=Cast.csv,
-) or ["*"]  # tighten on Render: set ALLOWED_HOSTS to your .onrender.com host
+# Fail closed: an empty allow-list used to fall back to ['*'], which let any
+# Host header through. Set ALLOWED_HOSTS to your deployed host(s).
+ALLOWED_HOSTS = nuvra_env("ALLOWED_HOSTS", default="", cast=Cast.csv)
+if not ALLOWED_HOSTS:
+    raise RuntimeError(
+        "ALLOWED_HOSTS must be set in production "
+        '(comma-separated, e.g. "needy-api-xxxx.run.app,api.needy.app").'
+    )
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = nuvra_env("SECURE_SSL_REDIRECT", default="0", cast=Cast.bool)
+SECURE_SSL_REDIRECT = nuvra_env("SECURE_SSL_REDIRECT", default="1", cast=Cast.bool)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+CSRF_TRUSTED_ORIGINS = nuvra_env("CSRF_TRUSTED_ORIGINS", default="", cast=Cast.csv)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 _database_url = nuvra_env("DATABASE_URL", default="")
 if _database_url:
@@ -46,6 +53,25 @@ CORS_ALLOWED_ORIGINS = nuvra_env(
     default="",
     cast=Cast.csv,
 )
+
+# Crash reporting — optional: only activates when SENTRY_DSN is provided.
+SENTRY_DSN = nuvra_env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=float(nuvra_env("SENTRY_TRACES_RATE", default="0.05")),
+            send_default_pii=False,
+            environment=nuvra_env("SENTRY_ENVIRONMENT", default="production"),
+        )
+    except ImportError:  # pragma: no cover - optional dependency
+        import warnings
+
+        warnings.warn("SENTRY_DSN is set but sentry-sdk is not installed.", stacklevel=1)
 
 # Quiet, structured-enough logging for a free-tier container.
 LOGGING = {

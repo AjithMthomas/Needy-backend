@@ -137,7 +137,7 @@ Everything below is already wired to be swappable without rewrites:
 - [ ] Enum changes mirrored to `time_need_app/lib/core/models/enums.dart` (byte-identical values)
 - [ ] No secrets in code or logs; `.env` not committed
 - [ ] Migration reviewed (no accidental column drops)
-- [ ] Root `TODO.md` + `architecture_plan.md` updated (project maintenance rule)
+- [ ] Root `TODO.md` + `architecture_plan.md` updated (**MANDATORY Architecture-First Rule**: all new features, models, endpoints, and behaviors must be documented)
 
 ---
 
@@ -149,3 +149,5 @@ Everything below is already wired to be swappable without rewrites:
 4. Prefer adding a `PostKind` over a new model. The whole marketplace is one pipeline by design.
 5. When adding dependencies: runtime → `requirements.txt` (ranged), dev → `requirements-dev.txt`. Justify any new runtime dep in the commit message.
 6. If a change touches auth, karma, or safety rules, add the test **before** the fix and note it in `TODO.md`.
+7. **Architecture-First Rule**: Every single new implementation, endpoint, schema change, or service MUST be explicitly documented in `architecture_plan.md` and `TODO.md`.
+

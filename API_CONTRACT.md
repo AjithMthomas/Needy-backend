@@ -31,6 +31,8 @@
 | POST | `/me/toggle-available` | — | `{available_now}` |
 | POST | `/me/toggle-guardian` | — | `{is_guardian}` (+ notification) |
 | GET | `/me/applications` | — | `[Application]` (mine, newest first) |
+| DELETE | `/me` | — | `{deleted: true}` (anonymizes profile, purges devices, cancels active tasks) |
+
 
 ## Members
 
@@ -75,12 +77,14 @@
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/auctions?live=1` | newest first; lazy-closes ended auctions |
-| GET | `/auctions/{id}` | detail + top-10 bids + `platform_fee_amount`, `total_winner_cost` |
-| POST | `/auctions` | `{title, description, category, image_url, base_price, buy_it_now_price?, duration_hours, area}`; moderation applies |
+| GET | `/auctions?live=1&listing_type=(auction\|rent)` | newest first; supports `listing_type` filter; lazy-closes ended auctions |
+| GET | `/auctions/{id}` | detail + top-10 bids + `platform_fee_amount`, `total_winner_cost`, rental terms |
+| POST | `/auctions` | `{title, description, category, image_url, listing_type(auction\|rent), rent_price?, rent_period?, deposit_amount?, base_price?, buy_it_now_price?, duration_hours, area}`; moderation applies |
 | POST | `/uploads` | multipart `file` — JPEG/PNG/WebP, ≤5 MB; `201 {url}` (absolute URL, use as `image_url`) |
 | POST | `/auctions/{id}/bids` | `{amount}` — row-locked; must exceed `current_bid`; seller blocked |
 | POST | `/auctions/{id}/buy-now` | first caller wins; race-safe |
+| POST | `/auctions/{id}/rent` | `{duration_units?}` — books rental; marks item rented; notifies owner |
+
 
 ## Engagement (karma · perks · play · ideas · radar)
 
@@ -104,13 +108,16 @@
 | POST | `/block/block` | `{member_id}` |
 | POST | `/block/unblock` | `{member_id}` |
 
-## Notifications
-
+## Notifications & Device Push
+ 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/notifications?unread=1` | cursor-paginated |
 | GET | `/notifications/unread-count` | `{unread}` — cheap poll target |
 | POST | `/notifications/read-all` | — |
+| POST | `/devices/register` | `{token, platform(android\|ios\|web), device_name?}` → `{registered, device_id, platform}` |
+| POST | `/devices/unregister` | `{token}` → `{unregistered: true}` |
+
 
 ---
 

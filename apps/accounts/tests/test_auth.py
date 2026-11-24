@@ -112,3 +112,26 @@ def test_complete_profile_sets_flag(client, settings):
     )
     assert response.status_code == 200
     assert response.json()["member"]["profile_completed"] is True
+
+
+def test_delete_account_anonymizes_member_and_revokes_devices(client, settings):
+    _request(client, "delete.me@needy.app")
+    tokens = _verify(client, "delete.me@needy.app", settings.NUVRA["DEMO_OTP"]).json()
+    auth = {"HTTP_AUTHORIZATION": f"Bearer {tokens['access']}"}
+
+    from apps.accounts.models import Member
+    from apps.notifications import services
+
+    member = Member.objects.get(email="delete.me@needy.app")
+    services.register_device(member, "token_to_delete", platform="android")
+    assert member.devices.filter(is_active=True).exists()
+
+    res = client.delete("/api/v1/me", **auth)
+    assert res.status_code == 200
+    assert res.json()["deleted"] is True
+
+    member.refresh_from_db()
+    assert member.is_active is False
+    assert member.public_name == "Deleted Member"
+    assert not member.devices.exists()
+

@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -136,6 +137,38 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # rung of the scale ladder (STANDARDS.md §6).
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# ---------------------------------------------------------------------------
+# Media storage — local disk in dev, S3-compatible (Cloudflare R2) in prod.
+#
+# Without this every uploaded image 404s in production: MEDIA_URL is only
+# served by Django when DEBUG=True, and container disks are ephemeral.
+# Setting R2_BUCKET_NAME switches storage without any code change.
+# ---------------------------------------------------------------------------
+R2_BUCKET_NAME = nuvra_env("R2_BUCKET_NAME", default="")
+R2_PUBLIC_URL = nuvra_env("R2_PUBLIC_URL", default="").rstrip("/")
+
+if R2_BUCKET_NAME:
+    _r2_options = {
+        "bucket_name": R2_BUCKET_NAME,
+        "access_key": nuvra_env("R2_ACCESS_KEY_ID", default=""),
+        "secret_key": nuvra_env("R2_SECRET_ACCESS_KEY", default=""),
+        "endpoint_url": nuvra_env("R2_ENDPOINT_URL", default="") or None,
+        "region_name": nuvra_env("R2_REGION", default="auto"),
+        # R2 does not support S3 ACLs, and objects stay private: serve
+        # presigned URLs unless a public bucket domain is configured.
+        "default_acl": None,
+        "querystring_auth": not R2_PUBLIC_URL,
+        "file_overwrite": False,
+    }
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3.S3Storage", "OPTIONS": _r2_options},
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        },
+    }
+    if R2_PUBLIC_URL:
+        MEDIA_URL = f"{R2_PUBLIC_URL}/"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
@@ -172,6 +205,34 @@ NEEDY = {
         needy_env("PLAY_DAILY_CONSOLATION_KARMA", default="10")
     ),
     "IDEA_PUBLISH_KARMA": int(needy_env("IDEA_PUBLISH_KARMA", default="15")),
+    # Distinct reporters needed before a post is hidden. One report must not be
+    # enough, or a single member can censor the whole marketplace.
+    "REPORT_QUARANTINE_THRESHOLD": int(
+        needy_env("REPORT_QUARANTINE_THRESHOLD", default="3")
+    ),
+    # How many ideas per member per day actually earn credits.
+    "IDEA_DAILY_KARMA_LIMIT": int(needy_env("IDEA_DAILY_KARMA_LIMIT", default="1")),
+    # ── Launch controls (read by /config, no store release needed) ──
+    "MAINTENANCE_MODE": needy_env("MAINTENANCE_MODE", default="0") == "1",
+    "MAINTENANCE_MESSAGE": needy_env(
+        "MAINTENANCE_MESSAGE",
+        default="Needy is briefly off for maintenance. Please try again in a few minutes.",
+    ),
+    "APP_MIN_IOS_BUILD": int(needy_env("APP_MIN_IOS_BUILD", default="1")),
+    "APP_MIN_ANDROID_BUILD": int(needy_env("APP_MIN_ANDROID_BUILD", default="1")),
+    "APP_STORE_IOS_URL": needy_env(
+        "APP_STORE_IOS_URL", default="https://apps.apple.com/app/id0000000000"
+    ),
+    "APP_STORE_ANDROID_URL": needy_env(
+        "APP_STORE_ANDROID_URL",
+        default="https://play.google.com/store/apps/details?id=app.needy.mobile",
+    ),
+    # Money features are off for the pilot until payments/compliance land.
+    "FEATURE_FLAGS": {
+        "auctions": needy_env("FEATURE_AUCTIONS", default="0") == "1",
+        "payments": needy_env("FEATURE_PAYMENTS", default="0") == "1",
+        "gigs": needy_env("FEATURE_GIGS", default="1") == "1",
+    },
     # Fixed code while email delivery is console-only in dev. Prod sends a
     # random 6-digit code by email; DEMO_OTP only applies when settings.DEBUG.
     "DEMO_OTP": "424242",
@@ -220,3 +281,10 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = needy_env(
     "DEFAULT_FROM_EMAIL", default="needy <noreply@needy.app>"
 )
+
+# ---------------------------------------------------------------------------
+# Firebase Cloud Messaging (FCM) — Push notifications
+# ---------------------------------------------------------------------------
+FIREBASE_CREDENTIALS_PATH = needy_env("FIREBASE_CREDENTIALS_PATH", default="")
+FIREBASE_CREDENTIALS_JSON = needy_env("FIREBASE_CREDENTIALS_JSON", default="")
+

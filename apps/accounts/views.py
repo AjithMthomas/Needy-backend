@@ -4,7 +4,7 @@ Views are thin: validate input, call services, shape the response.
 Business rules live in services.py (STANDARDS.md rule 3).
 """
 
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,6 +21,7 @@ from apps.accounts.serializers import (
     SignupProfileSerializer,
 )
 from apps.core.exceptions import BusinessRuleError
+from apps.core.pagination import NeedyPagination
 
 
 def _tokens_for(member: Member) -> dict:
@@ -40,7 +41,13 @@ class OtpRequestView(APIView):
     def post(self, request):
         serializer = OtpRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = services.request_otp(serializer.validated_data["email"])
+        try:
+            result = services.request_otp(serializer.validated_data["email"])
+        except BusinessRuleError as exc:
+            return Response(
+                {"detail": str(exc.detail), "code": exc.default_code},
+                status=exc.status_code,
+            )
         return Response(
             {"sent": result.sent, "cooldown_seconds": result.cooldown_seconds},
         )
@@ -89,6 +96,11 @@ class MeView(APIView):
         serializer.save()
         return Response(MemberSelfSerializer(request.user).data)
 
+    def delete(self, request):
+        services.delete_account(request.user)
+        return Response({"deleted": True})
+
+
 
 class CompleteProfileView(APIView):
     """POST /me/complete-profile — onboarding step after first OTP verify."""
@@ -132,7 +144,7 @@ class ToggleGuardianView(APIView):
 
         notify(
             recipient=request.user,
-            title="Guardian Shield active 🛡️"
+            title="Guardian Shield active"
             if request.user.is_guardian
             else "Guardian Shield paused",
             body=(
@@ -162,17 +174,24 @@ class MyApplicationsView(APIView):
         return Response(ApplicationSerializer(apps, many=True).data)
 
 
-class MemberListView(APIView):
+class MemberListView(generics.ListAPIView):
     """GET /members — the emergency roster: guardians + available-now
-    members first (mock parity with availableHelpers)."""
+    members first (mock parity with availableHelpers).
 
+    Paginated: this used to return every active member in one unpaginated
+    response, with a badge query per row.
+    """
+
+    serializer_class = MemberPublicSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = NeedyPagination
 
-    def get(self, request):
-        members = Member.objects.filter(is_active=True).order_by(
-            "-is_guardian", "-available_now", "-rating"
+    def get_queryset(self):
+        return (
+            Member.objects.filter(is_active=True)
+            .prefetch_related("badges_earned")
+            .order_by("-is_guardian", "-available_now", "-rating")
         )
-        return Response(MemberPublicSerializer(members, many=True).data)
 
 
 class PublicMemberView(APIView):

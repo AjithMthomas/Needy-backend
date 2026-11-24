@@ -33,6 +33,9 @@ class AuctionListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = AuctionItem.objects.select_related("seller")
+        listing_type = self.request.query_params.get("listing_type")
+        if listing_type:
+            qs = qs.filter(listing_type=listing_type)
         if self.request.query_params.get("live") == "1":
             qs = qs.filter(
                 status__in=[AuctionItem.Status.ACTIVE, AuctionItem.Status.ENDING_SOON],
@@ -42,6 +45,7 @@ class AuctionListView(generics.ListAPIView):
             # and get "This auction has just ended" on their first bid.
             qs = qs.exclude(end_time__lte=timezone.now())
         return qs
+
 
 
 class AuctionDetailView(APIView):
@@ -109,3 +113,22 @@ class BuyNowView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(AuctionItemSerializer(auction).data)
+
+
+class RentView(APIView):
+    """POST /auctions/{id}/rent — book/request rental."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, auction_id):
+        auction = _fresh(request, auction_id)
+        duration_units = int((request.data or {}).get("duration_units", 1))
+        try:
+            auction = services.rent_item(auction, request.user, duration_units=duration_units)
+        except BusinessRuleError as exc:
+            return Response(
+                {"detail": str(exc.detail), "code": exc.default_code},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(AuctionItemSerializer(auction).data)
+

@@ -154,7 +154,21 @@ def submit_idea(member: Member, title: str, details: str, tag: str) -> BoardIdea
         upvotes=1,
     )
     IdeaVote.objects.create(idea=idea, member=member)  # auto self-vote (mock parity)
-    grant_karma(member, _idea_karma(), "Idea published on the community board.")
+    # Publishing used to mint credits for every idea, forever — an unlimited
+    # karma farm. Only the first few ideas of the day pay out; the rest still
+    # publish, they just don't earn.
+    from django.conf import settings
+
+    daily_limit = int(settings.NUVRA.get("IDEA_DAILY_KARMA_LIMIT", 1))
+    rewarded_today = (
+        BoardIdea.objects.filter(
+            author=member,
+            created_at__date=timezone.localdate(),
+        ).count()
+        - 1  # the idea just created above
+    )
+    if rewarded_today < daily_limit:
+        grant_karma(member, _idea_karma(), "Idea published on the community board.")
     return idea
 
 

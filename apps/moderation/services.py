@@ -1,12 +1,26 @@
-"""moderation services — reports auto-quarantine; blocks filter feeds."""
+"""moderation services — reports quarantine only on corroboration; blocks
+filter feeds."""
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import transaction
 
 from apps.accounts.models import Member
 from apps.core.exceptions import BusinessRuleError
 from apps.moderation.models import Block, QuarantineAction, Report
+
+
+def quarantine_threshold(reason: str) -> int:
+    """Distinct reporters needed before a post is hidden.
+
+    A safety concern hides on the first report; every other reason needs
+    corroboration from independent members, because a single report used to
+    take any post down — a free censorship tool.
+    """
+    if reason == Report.Reason.SAFETY:
+        return 1
+    return int(settings.NUVRA.get("REPORT_QUARANTINE_THRESHOLD", 3))
 
 
 @transaction.atomic
@@ -18,6 +32,17 @@ def file_report(
     reason: str,
     details: str,
 ) -> Report:
+    if task is not None and task.creator_id == reporter.id:
+        raise BusinessRuleError("You can't report your own post.")
+    if target_member is not None and target_member.id == reporter.id:
+        raise BusinessRuleError("You can't report yourself.")
+    if Report.objects.filter(
+        reporter=reporter,
+        target_task=task,
+        target_member=target_member,
+    ).exists():
+        raise BusinessRuleError("You already reported this.")
+
     report = Report.objects.create(
         reporter=reporter,
         target_task=task,
@@ -26,12 +51,19 @@ def file_report(
         details=details,
     )
     if task is not None:
-        quarantine_task(
-            task,
-            reason=f"reported as {reason}",
-            actor=reporter,
-            actor_label="report",
+        distinct_reporters = (
+            Report.objects.filter(target_task=task)
+            .values("reporter_id")
+            .distinct()
+            .count()
         )
+        if distinct_reporters >= quarantine_threshold(reason):
+            quarantine_task(
+                task,
+                reason=f"reported as {reason}",
+                actor=reporter,
+                actor_label="report",
+            )
     return report
 
 

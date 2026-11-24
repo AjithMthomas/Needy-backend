@@ -10,4 +10,6 @@ urlpatterns = [
     path("auctions/<uuid:auction_id>", views.AuctionDetailView.as_view(), name="auction-detail"),
     path("auctions/<uuid:auction_id>/bids", views.BidView.as_view(), name="auction-bid"),
     path("auctions/<uuid:auction_id>/buy-now", views.BuyNowView.as_view(), name="auction-buy-now"),
+    path("auctions/<uuid:auction_id>/rent", views.RentView.as_view(), name="auction-rent"),
+
 ]

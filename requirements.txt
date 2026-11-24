@@ -11,5 +11,8 @@ dj-database-url>=2.3,<3
 python-dotenv>=1.0,<2
 psycopg[binary]>=3.2,<4               # Postgres driver (dev uses SQLite)
 whitenoise>=6.8,<7                    # static files without a CDN
+django-storages[s3]>=1.14,<2          # S3-compatible uploads (Cloudflare R2)
 gunicorn>=23,<24                      # prod WSGI server
 uvicorn[standard]>=0.30,<1            # prod ASGI server (async-ready)
+firebase-admin>=7.0,<8                # FCM push notifications (zero cost)
+

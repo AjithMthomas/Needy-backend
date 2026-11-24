@@ -28,6 +28,11 @@ class AuctionItemSerializer(serializers.ModelSerializer):
             "category",
             "image_url",
             "video_url",
+            "listing_type",
+            "rent_price",
+            "rent_period",
+            "deposit_amount",
+            "is_rented",
             "seller",
             "base_price",
             "current_bid",
@@ -60,7 +65,8 @@ class AuctionItemSerializer(serializers.ModelSerializer):
 
 
 class AuctionCreateSerializer(serializers.ModelSerializer):
-    duration_hours = serializers.IntegerField(min_value=1, max_value=24 * 30)
+    duration_hours = serializers.IntegerField(min_value=1, max_value=24 * 30, default=168)
+    base_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
 
     class Meta:
         model = AuctionItem
@@ -69,6 +75,10 @@ class AuctionCreateSerializer(serializers.ModelSerializer):
             "description",
             "category",
             "image_url",
+            "listing_type",
+            "rent_price",
+            "rent_period",
+            "deposit_amount",
             "base_price",
             "buy_it_now_price",
             "duration_hours",
@@ -77,6 +87,18 @@ class AuctionCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         from django.utils import timezone
+
+        listing_type = attrs.get("listing_type", AuctionItem.ListingType.AUCTION)
+        if listing_type == AuctionItem.ListingType.RENT:
+            if not attrs.get("rent_price") and not attrs.get("base_price"):
+                raise serializers.ValidationError("Rent price is required for rentals.")
+            if not attrs.get("base_price"):
+                attrs["base_price"] = attrs.get("rent_price")
+            if not attrs.get("rent_price"):
+                attrs["rent_price"] = attrs.get("base_price")
+        else:
+            if not attrs.get("base_price"):
+                raise serializers.ValidationError("Base price is required.")
 
         bin_price = attrs.get("buy_it_now_price")
         base = attrs.get("base_price")
@@ -88,5 +110,7 @@ class AuctionCreateSerializer(serializers.ModelSerializer):
         if not verdict.clean:
             raise serializers.ValidationError(verdict.reason)
         attrs["start_time"] = timezone.now()
-        attrs["end_time"] = timezone.now() + timezone.timedelta(hours=attrs.pop("duration_hours"))
+        duration = attrs.pop("duration_hours", 168)
+        attrs["end_time"] = timezone.now() + timezone.timedelta(hours=duration)
         return attrs
+

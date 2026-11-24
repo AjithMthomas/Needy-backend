@@ -6,7 +6,11 @@ from rest_framework.views import APIView
 
 from apps.notifications import services
 from apps.notifications.models import Notification
-from apps.notifications.serializers import NotificationSerializer
+from apps.notifications.serializers import (
+    DeviceRegisterSerializer,
+    DeviceUnregisterSerializer,
+    NotificationSerializer,
+)
 
 
 class NotificationListView(generics.ListAPIView):
@@ -39,3 +43,37 @@ class MarkAllReadView(APIView):
     def post(self, request):
         services.mark_all_read(request.user)
         return Response({"ok": True})
+
+
+class DeviceRegisterView(APIView):
+    """POST /devices/register — Register FCM/APNs device token."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device = services.register_device(
+            member=request.user,
+            token=serializer.validated_data["token"],
+            platform=serializer.validated_data.get("platform", "android"),
+            device_name=serializer.validated_data.get("device_name", ""),
+        )
+        return Response({
+            "registered": True,
+            "device_id": str(device.id),
+            "platform": device.platform,
+        })
+
+
+class DeviceUnregisterView(APIView):
+    """POST /devices/unregister — Unregister FCM/APNs device token on sign out."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceUnregisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.unregister_device(token=serializer.validated_data["token"])
+        return Response({"unregistered": True})
+

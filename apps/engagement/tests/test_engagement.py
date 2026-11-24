@@ -128,3 +128,26 @@ def test_idea_submission_awards_karma(client, member):
     assert response.status_code == 201
     member.refresh_from_db()
     assert member.karma == 500 + 15  # IDEA_PUBLISH_KARMA default
+
+
+def test_idea_karma_is_capped_per_day(client, member):
+    """Publishing used to mint credits for every idea — an unlimited farm."""
+    payload = {"title": "Idea one", "details": "d", "tag": "Feature"}
+    first = client.post(
+        "/api/v1/community/ideas/create",
+        payload,
+        content_type="application/json",
+        **auth_for(member),
+    )
+    assert first.status_code == 201
+
+    second = client.post(
+        "/api/v1/community/ideas/create",
+        {"title": "Idea two", "details": "d", "tag": "Feature"},
+        content_type="application/json",
+        **auth_for(member),
+    )
+    # The second idea still publishes — it just doesn't pay out.
+    assert second.status_code == 201
+    member.refresh_from_db()
+    assert member.karma == 500 + 15
